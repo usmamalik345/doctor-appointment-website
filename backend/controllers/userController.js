@@ -6,6 +6,15 @@ import userModel from '../models/userModel.js'
 import doctorModel from '../models/doctorModel.js'
 import appointmentModel from '../models/appointmentModel.js'
 
+
+export function formatTo12Hour(timeString) {
+  const [hour, minute] = timeString.split(':').map(Number);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${minute.toString().padStart(2, '0')} ${ampm}`;
+}
+
+
 // API to register user
 const registerUser = async (req, res) => {
 
@@ -166,35 +175,46 @@ const bookAppointment = async (req, res) => {
 
     const newAppointment = new appointmentModel(appointmentData)
     await newAppointment.save()
+ await doctorModel.findByIdAndUpdate(docId, { slots_booked })
 
-    // save new slots data in docData
-    await doctorModel.findByIdAndUpdate(docId, { slots_booked })
-
-    res.json({ success: true, message: 'Appointment Booked' })
-
+    res.json({
+      success: true,
+      message: `Appointment Booked at ${formatTo12Hour(slotTime)}`,
+      slotTime: formatTo12Hour(slotTime),
+      slotDate
+    });
   } catch (error) {
     console.log(error)
     res.json({ success: false, message: error.message })
   }
 
 }
+    // save new slots data in docData
+   
 
 // API to get user appointments for frontend my-appointments page
 const listAppointment = async (req, res) => {
-
   try {
+    const { userId } = req.body;
 
-    const { userId } = req.body
-    const appointments = await appointmentModel.find({ userId })
+    // ✅ Step 1: Fetch appointments for the user
+    const appointments = await appointmentModel.find({ userId });
 
-    res.json({ success: true, appointments })
+    // ✅ Step 2: Format slotTime to 12-hour format
+    const formattedAppointments = appointments.map(app => ({
+      ...app._doc,
+      slotTime: formatTo12Hour(app.slotTime),
+    }));
+
+    // ✅ Step 3: Return the formatted list
+    res.json({ success: true, appointments: formattedAppointments });
 
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: error.message })
+    console.log(error);
+    res.json({ success: false, message: error.message });
   }
+};
 
-}
 
 // API to cancel appointment
 const cancelAppointment = async (req, res) => {
@@ -216,7 +236,7 @@ const cancelAppointment = async (req, res) => {
     const doctorData = await doctorModel.findById(docId)
     let slots_booked = doctorData.slots_booked
 
-    slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime)
+    slots_booked[slotDate] = slots_booked[slotDate]?.filter(e => e !== slotTime)
 
     await doctorModel.findByIdAndUpdate(docId, { slots_booked })
 

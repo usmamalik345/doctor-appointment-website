@@ -34,12 +34,16 @@ const addDoctor = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt)
 
     // upload image to cloudinary
+
     const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: 'image' })
     const imageUrl = imageUpload.secure_url
 
     const doctorData = {
       name, email, image: imageUrl, password: hashedPassword, speciality,
-      degree, experience, about, fees, address: JSON.parse(address), date: Date.now()
+      degree, experience, about,  fees,
+      address: JSON.parse(address),
+      role: req.body.role || 'doctor',  
+      date: Date.now(),
     }
 
     const newDoctor = new doctorModel(doctorData)
@@ -53,6 +57,29 @@ const addDoctor = async (req, res) => {
   }
 
 }
+
+const loginDoctor = async (req, res) => {
+  const { email, password } = req.body
+  const doctor = await doctorModel.findOne({ email })
+  if (!doctor) return res.json({ success: false, message: 'Doctor not found' })
+  
+  const isMatch = await bcrypt.compare(password, doctor.password)
+  if (!isMatch) return res.json({ success: false, message: 'Invalid credentials' })
+  
+  const token = jwt.sign(
+    {
+      id: doctor._id,
+      role: doctor.role, 
+      email: doctor.email,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  )
+  
+  // dtoken return kar rahe hain doctor ke liye
+  res.json({ success: true, dtoken: token, doctor })
+}
+
 
 // API for admin Login
 const loginAdmin = async (req, res) => {
@@ -90,18 +117,28 @@ const allDoctors = async (req, res) => {
 
 // API to get all appointments list
 const appointmentsAdmin = async (req, res) => {
-
   try {
+    const dToken = req.headers.dtoken;
+    const aToken = req.headers.atoken;
 
-    const appointments = await appointmentModel.find({})
-    res.json({ success: true, appointments })
+    let filter = {};
+
+    // If doctor is logged in
+    if (dToken) {
+      const decoded = jwt.verify(dToken, process.env.JWT_SECRET);
+      filter.docId = decoded.id; // Only get this doctor's appointments
+    }
+
+  
+
+    const appointments = await appointmentModel.find(filter);
+    res.json({ success: true, appointments });
 
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: error.message })
+    console.log(error);
+    res.json({ success: false, message: error.message });
   }
-
-}
+};
 
 // API for appointment cancellation
 const appointmentCancel = async (req, res) => {
@@ -156,4 +193,4 @@ const adminDashboard = async (req, res) => {
 
 }
       
-export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard }
+export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard , loginDoctor }
