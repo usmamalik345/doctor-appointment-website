@@ -9,10 +9,16 @@ const MyAppointments = () => {
   const [appointments, setAppointments] = useState([])
   const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-  const slotDateFormat = (slotDate) => {
-    const dateArray = slotDate.split('_')
-    return dateArray[0] + ' ' + months[Number(dateArray[1])] + ' ' + dateArray[2]
-  }
+const slotDateFormat = (slotDate) => {
+  const dateArray = slotDate.split('_')
+  const day = dateArray[0]
+  const monthIndex = Number(dateArray[1]) - 1
+  const year = dateArray[2]
+
+  if (!months[monthIndex]) return slotDate // fallback if invalid
+
+  return `${day} ${months[monthIndex]} ${year}`
+}
 
   const getUserAppointments = async () => {
 
