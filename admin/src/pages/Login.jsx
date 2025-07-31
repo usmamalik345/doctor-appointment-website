@@ -1,10 +1,11 @@
 import React, { useContext, useState } from 'react'
-import { assets } from '../assets/assets_admin/assets'
 import { AdminContext } from '../context/AdminContext'
 import { toast } from 'react-toastify'
 import axios from 'axios'
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
+  const navigate = useNavigate();
 
   const [state, setState] = useState('Admin')
   const [email, setEmail] = useState('')
@@ -50,11 +51,9 @@ const Login = () => {
 
         <button className='bg-primary text-white w-full py-2 rounded-md text-base'>Login</button>
 
-        {
-          state === 'Admin'
-            ? <p>Doctor Login? <span className='text-primary underline cursor-pointer text-xs' onClick={() => setState('Doctor')}>Click Here</span></p>
-            : <p>Admin Login? <span className='text-primary underline cursor-pointer text-xs' onClick={() => setState('Admin')}>Click Here</span></p>
-        }
+      
+          <p>Doctor Login? <span className='text-primary underline cursor-pointer text-xs'        onClick={() => navigate('/doctor-login')}>Click Here</span></p>
+
 
       </div>
     </form>
