@@ -14,23 +14,27 @@ const DoctorLogin = () => {
   const { backendUrl, setDToken } = useContext(AdminContext)
 
   const onSubmitHandler = async (event) => {
-    event.preventDefault()
+    event.preventDefault();
     try {
       const { data } = await axios.post(backendUrl + '/api/admin/login-doctors', {
         email,
         password,
-      })
+      });
+  
       if (data.success) {
-        localStorage.setItem('dToken', data.dtoken)  
-        setDToken(data.dtoken) 
-        navigate('/doctor-dashboard')
+        localStorage.setItem('dToken', data.dtoken);
+        localStorage.setItem('doctorId', data.doctor._id); // ✅ save doctorId
+        setDToken(data.dtoken);
+        setDoctorId(data.doctor._id); // ✅ update context
+        navigate('/doctor-dashboard');
       } else {
-        toast.error(data.message)
+        toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Doctor login failed')
+      toast.error(error.response?.data?.message || 'Doctor login failed');
     }
-  }
+  };
+  
 
   return (
     <form onSubmit={onSubmitHandler} className='min-h-[80vh] flex items-center'>

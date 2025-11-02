@@ -5,6 +5,7 @@ import { v2 as cloudinary } from 'cloudinary'
 import userModel from '../models/userModel.js'
 import doctorModel from '../models/doctorModel.js'
 import appointmentModel from '../models/appointmentModel.js'
+import { io, onlineDoctors } from '../server.js' // Socket.io import
 
 
 export function formatTo12Hour(timeString) {
@@ -136,59 +137,67 @@ const updateProfile = async (req, res) => {
 
 // API to book appointment
 const bookAppointment = async (req, res) => {
-
   try {
+    const { userId, docId, slotDate, slotTime } = req.body;
 
-    const { userId, docId, slotDate, slotTime } = req.body
-
-    const docData = await doctorModel.findById(docId).select('-password')
-
+    const docData = await doctorModel.findById(docId).select('-password');
     if (!docData.available) {
-      return res.json({ success: false, message: 'Doctor not available' })
+      return res.json({ success: false, message: 'Doctor not available' });
     }
 
-    let slots_booked = docData.slots_booked
+    let slots_booked = docData.slots_booked || {};
 
-    // checking for slot availablity
+    // checking for slot availability
     if (slots_booked[slotDate]) {
       if (slots_booked[slotDate].includes(slotTime)) {
-        return res.json({ success: false, message: 'Slot not available' })
+        return res.json({ success: false, message: 'Slot not available' });
       } else {
-        slots_booked[slotDate].push(slotTime)
+        slots_booked[slotDate].push(slotTime);
       }
     } else {
-      slots_booked[slotDate] = []
-      slots_booked[slotDate].push(slotTime)
+      slots_booked[slotDate] = [slotTime];
     }
 
-    const userData = await userModel.findById(userId).select('-password')
-
-    delete docData.slots_booked
+    const userData = await userModel.findById(userId).select('-password');
+    delete docData.slots_booked;
 
     const appointmentData = {
-      userId, docId,
-      userData, docData,
+      userId,
+      docId,
+      userData,
+      docData,
       amount: docData.fees,
-      slotTime, slotDate,
-      date: Date.now()
-    }
+      slotTime,
+      slotDate,
+      date: Date.now(),
+    };
 
-    const newAppointment = new appointmentModel(appointmentData)
-    await newAppointment.save()
- await doctorModel.findByIdAndUpdate(docId, { slots_booked })
+    const newAppointment = new appointmentModel(appointmentData);
+    await newAppointment.save();
+    await doctorModel.findByIdAndUpdate(docId, { slots_booked });
+
+    // ✅ Socket.io notification to doctor
+    const doctorSocketId = onlineDoctors.get(docId);
+    if (doctorSocketId) {
+      io.to(doctorSocketId).emit('newAppointment', {
+        message: `New appointment booked at ${formatTo12Hour(slotTime)} on ${slotDate}`,
+        appointment: newAppointment,
+      });
+      console.log('Notification sent to doctor:', docId);
+    }
 
     res.json({
       success: true,
       message: `Appointment Booked at ${formatTo12Hour(slotTime)}`,
       slotTime: formatTo12Hour(slotTime),
-      slotDate
+      slotDate,
     });
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: error.message })
-  }
 
-}
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
     // save new slots data in docData
    
 

@@ -7,6 +7,7 @@ export const AdminContext = createContext();
 const AdminContextProvider = (props) => {
   const [dToken, setDToken] = useState(localStorage.getItem('dtoken') || '');
   const [aToken, setAToken] = useState(localStorage.getItem('aToken') || '');
+  const [doctorId, setDoctorId] = useState(localStorage.getItem('doctorId') || '');
 
   const [doctors, setDoctors] = useState([]);
   const [appointments, setAppointments] = useState([]);
@@ -56,6 +57,7 @@ const AdminContextProvider = (props) => {
   };
 
   const getAllAppointments = async () => {
+    console.log('Fetching appointments...');
 
     try {
       const headers = {};
@@ -113,7 +115,7 @@ const AdminContextProvider = (props) => {
     getAllAppointments,
     cancelAppointment,
     setAppointments,
-
+    setDoctorId, doctorId,
     dashData, getDashData
   };
 
