@@ -15,7 +15,7 @@ import aiRouter from './routes/aiRouter.js';
 const app = express();
 
 // Use dynamic port for Shiper deployment
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB Atlas or local
 connectDB();
