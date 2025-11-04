@@ -11,30 +11,37 @@ import doctorRouter from './routes/doctorRoute.js';
 import userRouter from './routes/userRoute.js';
 import aiRouter from './routes/aiRouter.js';
 
-// app config
+// ------------------- App Config -------------------
 const app = express();
-const port = process.env.PORT || 4000;
+
+// Use dynamic port for Shiper deployment
+const PORT = process.env.PORT || 4000;
+
+// Connect to MongoDB Atlas or local
 connectDB();
+
+// Connect Cloudinary
 connectCloudinary();
 
-// middlewares
+// ------------------- Middlewares -------------------
 app.use(express.json());
 app.use(cors());
 
-// api end points
+// ------------------- API Routes -------------------
 app.use('/api/admin', adminRouter);
 app.use('/api/doctor', doctorRouter);
 app.use('/api/user', userRouter);
 app.use('/api', aiRouter);
 
+// ------------------- Test Route -------------------
 app.get('/', (req, res) => {
-  res.send('Api working...');
+  res.send('Backend API is running!');
 });
 
-// ✅ create HTTP server
+// ------------------- HTTP Server -------------------
 const server = http.createServer(app);
 
-// ✅ Socket.io setup - Update CORS for production
+// ------------------- Socket.io Setup -------------------
 const io = new Server(server, {
   cors: { 
     origin: process.env.FRONTEND_URL || '*',
@@ -42,13 +49,12 @@ const io = new Server(server, {
   },
 });
 
-// doctors online track karne ke liye map
+// Map to track online doctors
 const onlineDoctors = new Map();
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
-  // doctor apna ID register kare
   socket.on('registerDoctor', (doctorId) => {
     onlineDoctors.set(doctorId, socket.id);
     console.log(`Doctor ${doctorId} registered`);
@@ -61,8 +67,19 @@ io.on('connection', (socket) => {
   });
 });
 
-// ✅ export for controllers
+// Export for controllers if needed
 export { io, onlineDoctors };
 
-// ✅ start server with 0.0.0.0 binding
-server.listen(port, '0.0.0.0', () => console.log('Server running on port', port));
+// ------------------- Start Server -------------------
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+// ------------------- Global Error Handling -------------------
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
