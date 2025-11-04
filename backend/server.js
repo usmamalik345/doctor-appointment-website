@@ -34,9 +34,12 @@ app.get('/', (req, res) => {
 // ✅ create HTTP server
 const server = http.createServer(app);
 
-// ✅ Socket.io setup
+// ✅ Socket.io setup - Update CORS for production
 const io = new Server(server, {
-  cors: { origin: '*' }, // frontend URL yahan daal sakte ho
+  cors: { 
+    origin: process.env.FRONTEND_URL || '*',
+    methods: ['GET', 'POST']
+  },
 });
 
 // doctors online track karne ke liye map
@@ -61,5 +64,5 @@ io.on('connection', (socket) => {
 // ✅ export for controllers
 export { io, onlineDoctors };
 
-// ✅ start server
-server.listen(port, () => console.log('Server running on port', port));
+// ✅ start server with 0.0.0.0 binding
+server.listen(port, '0.0.0.0', () => console.log('Server running on port', port));
